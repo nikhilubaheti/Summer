@@ -1,8 +1,5 @@
 classdef CLF_CBF_QP
     %      '''
-    %         Initialize the CLF_CBF problem formulation
-    %         intopic: where the state is read from
-    %         Outtopic: where the input must be published to
     %         m: integrator chain order
     %         n: dimension of output space = number of control inputs
     %         A(m*n,m*n): State matrix for the given integrator chain
@@ -15,15 +12,13 @@ classdef CLF_CBF_QP
     % 		Y_min: Contains the minimum value of the position for each dimension
     % 		Y_max: Contains the maximum value of the position input for each dimension
     % 		X0(Currently unused): The initial state vector
-    % 		cbf_prms: Contains B, dB,..., d^(m-1)B, Lf^(m)B,LgLf^(m-1)B terms in symbolic form for each obstacle
+    % 		cbf_p: Contains [B, dB,..., d^(m-1)B], Lf^(m)B,LgLf^(m-1)B terms in symbolic form for each obstacle
     % 		Ks: contains the feedback matrices for each obstacle
     % 		Realizability: Set to False if there problem may not be solved for some reason, terminates the problem
     % 		cbf_Y: Contains B, dB,..., d^(m-1)B, Lf^(m)B,LgLf^(m-1)B terms in symbolic form for the outter bounds on the output vector
     % 		K_Ys: Contains the feedback matrices for the boundary box
     % 		'''
     properties (Access = public)
-        %         Initializations
-%         error = None
         m = 2;
         n = 2;
         A = [];
@@ -54,17 +49,44 @@ classdef CLF_CBF_QP
     end
     
     methods
-        function clf = initialize(clf)
-            clf.A = diag(ones(1,(clf.m-1)*clf.n),clf.n);
+        function clf = initialize(clf,prob,obs_size,goal_size,K_Ys,Ks,cbf_p,Realizability)
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             default initializations for the clf_cbf class
+%             A(m*n,m*n): nth super diagonal with ones
+%             B(m*n,n): last n rows as identity matrix
+%             U_min(n,1): -1
+%             U_max(n,1): 1
+%             Y_min(n,1): -10
+%             Y_max(n,1): 10
+%             X0(m*n,1):0
+%             Q(m*n,m*n): identity
+%             R(n,n): 10*identity
+%             target_state(m*n,1): 0
+%             T: 4
+%             vel(n,1): 0
+%             goal(n,1): 0
+%             P: lqr(A,B,Q,R)
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            clf.n = prob.output_dim;
+            clf.m = prob.number_integrators;
+            clf.goal_num = prob.goal_num;
+            clf.obs_num = prob.obstacle_num;
+            clf.A = diag(ones(1,(clf.m-1)*clf.n),clf.n); 
             clf.B = [zeros((clf.m-1)*clf.n, clf.n);eye(clf.n)];
-            clf.U_min = -ones(clf.n);
-            clf.U_max = ones(clf.n);
-            clf.Y_min = -10*ones(clf.n);
-            clf.Y_max = 10*ones(clf.n);
-            clf.X0 = zeros(clf.n*clf.m);
+            clf.box_size = obs_size;
+            clf.goal_size = goal_size;
+            clf.X0 = prob.X0;
+            clf.U_min = prob.U_min;
+            clf.U_max = prob.U_max;
+            clf.Y_min = prob.Y_min;
+            clf.Y_max = prob.Y_max;
+            clf.K_Ys = K_Ys;
+            clf.Ks = Ks;
+            clf.cbf_p = cbf_p;
+            clf.Realizability = Realizability;
             clf.Q = eye(clf.m*clf.n);
             clf.R = 10*eye(clf.n);
-            clf.target_state = zeros(clf.m*clf.n);
+            clf.target_state = zeros(clf.m*clf.n,1);
             clf.T = min(4,25/clf.goal_num);
             clf.vel = zeros(clf.n,1);
             clf.goal = zeros(clf.n,1);
@@ -72,6 +94,16 @@ classdef CLF_CBF_QP
         end
         
         function u = controller(clf,t,x)
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%             QP based controller
+%             Get inequality based constraints from
+%                 - CLF: use slack variable to let the trajectory move away 
+%                        from CLF incase trajectory goes through obstacle
+%                 - input constraints
+%                 - outter bound on the state position constraints
+%                 - obstacles avoidance
+%             Normalize all constaints
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             gamma = 1;
             [A_ineq_lyap,b_ineq_lyap] = clf.lyap_constraints(t,x,gamma);
             [A_ineq_ip,b_ineq_ip] = clf.control_ip_constraints();
@@ -98,50 +130,45 @@ classdef CLF_CBF_QP
                 u = u_slack(1:clf.n);
                 u = max(clf.U_min,min(u,clf.U_max));
             end
-    end
+        end
     
-    function [A_ineq,b_ineq] = lyap_constraints(clf,t,x,gamma)
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %
-    %         Input:
-    %             clf: clf_cbf object
-    %             t: current simulation time
-    %             x(m*n,1): state vector
-    %         Output:
-    %             A_ineq(1,n+1): Inequality matrix A for the input u
-    %             b_ineq(1): Inequality constant
-    %             A_ineq*[u;delta] <= b_ineq
-    %         Tunning variable:
-    %             gamma: convergence rate for exponential stability
-    %
-    %         V = x'*P*x
-    %         F: state vector = A*X
-    %         G: Control vector = B
-    %         '''
-    %         CLF_QP:LgV*u + delta<= -gamma*V-LfV
-    %         LfV = (dV/dx)*F*x
-    %         LgV = (dV/dx)*G
-    %         delta: slack variable
-    %         '''
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    F = clf.A;
-    G = clf.B;
-%     clf.state_vec = x;
-    pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T);
-    xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
-    clf.Reached_Goal = chk_collision(x(1:clf.n),clf.goal_size);
-    if clf.Reached_Goal
-        fprintf('reached goal!!');
-    end
-    V = (x-xd)'*clf.P*(x-xd);
-    dV_dx = 2*(x-xd)'*clf.P;
-    LfV = dV_dx*F*x;
-    LgV = dV_dx*G;
-    b_ineq = -LfV - gamma*V;
-    A_ineq = [LgV,1];
-    end
+        function [A_ineq,b_ineq] = lyap_constraints(clf,t,x,gamma)
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %
+            %         Input:
+            %             clf: clf_cbf object
+            %             t: current simulation time
+            %             x(m*n,1): state vector
+            %         Output:
+            %             A_ineq(1,n+1): Inequality matrix A for the input u
+            %             b_ineq(1): Inequality constant
+            %             A_ineq*[u;delta] <= b_ineq
+            %         Tunning variable:
+            %             gamma: convergence rate for exponential stability
+            %
+            %         V = (x-xd)'*P*(x-xd)
+            %         F: state vector = A*X
+            %         G: Control vector = B
+            %         '''
+            %         CLF_QP:LgV*u + delta<= -gamma*V-LfV
+            %         LfV = (dV/dx)*F*x
+            %         LgV = (dV/dx)*G
+            %         delta: slack variable
+            %         '''
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            F = clf.A;
+            G = clf.B;
+            pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T); ... let the goal be linearly changed for quicker convergence
+            xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
+            V = (x-xd)'*clf.P*(x-xd);
+            dV_dx = 2*(x-xd)'*clf.P;
+            LfV = dV_dx*F*x;
+            LgV = dV_dx*G;
+            b_ineq = -LfV - gamma*V;
+            A_ineq = [LgV,1];
+        end
     
-    function [A_ineq,b_ineq] = control_ip_constraints(clf)
+        function [A_ineq,b_ineq] = control_ip_constraints(clf)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     %         Input:
@@ -171,8 +198,7 @@ classdef CLF_CBF_QP
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %
     %         Input:
-    %             clf: clf_cbf object must contain feedback gains K_min and
-    %             K_max
+    %             clf: clf_cbf object must contain feedback gains K_Y
     %             t: current simulation time
     %             x(m*n,1): state vector
     %         Output:
@@ -232,21 +258,20 @@ classdef CLF_CBF_QP
     %           u <= -K*eta
     %         '''
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    b_ineq = [];
-    A_ineq = [];
+    b_ineq = zeros(clf.obs_num,1);
+    A_ineq = zeros(clf.obs_num,clf.n+1);
     for i = 1:clf.obs_num
-%         cbf = clf.cbf_p(i);
         cbf_sub = clf.cbf_p(i).subs_cbf(x);
         if cbf_sub.eta(1)<0
-            fprintf('in collision with obstacle');
+            fprintf('in collision with obstacle\n');
         end
         K = clf.Ks(i,:);
         b_ineq_cbf = K*cbf_sub.eta+cbf_sub.LfB;
         if length(b_ineq_cbf) ~= 1
-            fprintf('b_ineq is not a value');
+            fprintf('b_ineq is not a value\n');
         end
-        b_ineq = [b_ineq;b_ineq_cbf];
-        A_ineq = [A_ineq;-cbf_sub.LgB,0];
+        b_ineq(i) = b_ineq_cbf;
+        A_ineq(i,:) = [-cbf_sub.LgB,0];
     end
     end
 

@@ -127,34 +127,6 @@ function plot_boxes(n_dim, objects,clr,alpha,txt_flag)
     end
 end
 
-% 
-% function plot_trial_3D(td)
-%     u_idx = 2 + [1:td.n_outputs] ;
-%     y_idx = u_idx(end) + [1:td.n_outputs] ;
-%     u = td.trajectory(:,u_idx) ;
-%     y = td.trajectory(:,y_idx) ;
-%     
-%     plot3(y(:,1), y(:,2), y(:,3), 'LineWidth', 5) ; hold on ;
-%     plot3(y(1,1), y(1,2), y(1,3), 'k*') ;
-%     xlabel('x'); ylabel('y') ; zlabel('z') ; grid on ;
-%     title(['Trial #' num2str(td.trial_idx)]) ;
-%     
-%     for j=1:length(td.problem_instance.obstacles)
-%         V = con2vert(td.problem_instance.obstacles{j}.H, td.problem_instance.obstacles{j}.K') ;
-%         min_V = min(V) ;
-%         max_V = max(V) ;
-%         h = prism_3D(min_V(1), min_V(2), min_V(1), max_V(1)-min_V(1), max_V(2)-min_V(2), max_V(3)-min_V(3), 'red') ;
-%     end
-%     for j=1:length(td.problem_instance.goals)
-%         V = con2vert(td.problem_instance.goals{j}.H, td.problem_instance.goals{j}.K') ;
-%         min_V = min(V) ;
-%         max_V = max(V) ;
-%         h = prism_3D(min_V(1), min_V(2), min_V(1), max_V(1)-min_V(1), max_V(2)-min_V(2), max_V(3)-min_V(3), 'green') ;
-%         m = mean(V) ;
-%         text(m(1),m(2),m(3),num2str(j),'HorizontalAlignment','left','FontSize',8);
-%     end
-% end
-
 
 function h = prism_2D(x, y, w, l, clr,alpha)
     [X Y] = prism_faces_2D(x, y, w, l);
