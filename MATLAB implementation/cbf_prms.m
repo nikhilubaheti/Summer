@@ -17,7 +17,7 @@ classdef cbf_prms
             % n       the dimension of position space
             % geom    ellipse geometry that contains the ellipse parameters
             %
-            fprintf('Generate expression for CBF using Sympy...\n');
+            fprintf('Generate expression for CBF using Syms...\n');
             statex = [sym('x%d',[n,1]);reshape(sym('d%dx%d',[m-1,n],'real')',(m-1)*n,1)];
             func = sum(((sym('x%d',[n,1])-geom.center)./geom.axis).^geom.degree)-geom.const;
             cbf = cbf_p;   % create a list for CBF

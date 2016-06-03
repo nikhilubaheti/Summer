@@ -4,6 +4,8 @@ classdef problem_init
         number_integrators_range = [1 4];
         goal_range = [1 10];
         obstacle_range = [1 4];
+        t0 = 0;
+        tf = 3;
         output_dim = 1;
         number_integrators = 1;
         U_min = []; 
@@ -17,8 +19,7 @@ classdef problem_init
         goals = [];
         obstacles = [];
         X0 = [];
-        t0 = 0;
-        tf = 5;
+
     end
     methods
         function prob = init_prob(prob)
@@ -150,10 +151,10 @@ classdef problem_init
                     eta0 = cbf_sub.eta;
                     fprintf('B0: %d\n',eta0(1,1));
                     if eta0(1,1) <= 0
-                        if chk_collision(prob.X0(1:prob.output_dim),box)
+%                         if chk_collision(prob.X0(1:prob.output_dim),box)
                             fprintf('start location in obstacle\n');
                             Realizability = false;
-                        end
+%                         end
                     end
                     if prob.number_integrators == 1
                         K = 1;

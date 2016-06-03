@@ -13,7 +13,7 @@ function plot_trial(n_dim,clf,u,y)
 figure ;
 for i = 1:clf.n
     subplot(clf.n,1,i);
-    plot(u(:,i)) ; grid on ; title(['u(' num2str(i) ')']);
+    plot(u(:,i)) ; grid on ; title(['u(' num2str(1) ')']);
 end
     
     
@@ -28,22 +28,22 @@ else
 end
 xlabel('x'); ylabel('y') ; grid on ;
     
-plot_boxes(n_dim, [clf.box_size(1:2:end,:); clf.box_size(2:2:end,:)],'red',0.3,false) ;
-plot_boxes(n_dim, [clf.goal_size(1:2:end,:); clf.goal_size(2:2:end,:)],'green',0.3,true) ;
-plot_boxes(n_dim, [clf.Y_min; clf.Y_max],'blue',0.01,false) ;
+plot_boxes(n_dim, [clf.obs_size(1:2:end,) clf.obs_size(1:2:end),'red',0.3,false) ;
+plot_boxes(n_dim, clf.goals_size,'green',0.3,true) ;
+plot_boxes(n_dim, [clf.Y_min clf.Y_max],'blue',0.01,false) ;
 end
 
 function plot_boxes(n_dim, objects,clr,alpha,txt_flag)
-    for j=1:size(objects,2)
-        min_V = objects(1:n_dim,j) ;
-        max_V = objects(n_dim+1:end,j) ;
+    for j=1:length(objects,2)
+        min_V = min(V) ;
+        max_V = max(V) ;
         if(n_dim==2)
             h = prism_2D(min_V(1), min_V(2), max_V(1)-min_V(1), max_V(2)-min_V(2), clr,alpha) ;
         else
-            h = prism_3D(min_V(1), min_V(2), min_V(3), max_V(1)-min_V(1), max_V(2)-min_V(2), max_V(3)-min_V(3), clr,alpha) ;
+            h = prism_3D(min_V(1), min_V(2), min_V(1), max_V(1)-min_V(1), max_V(2)-min_V(2), max_V(3)-min_V(3), clr,alpha) ;
         end
         if(txt_flag)
-            m = (min_V+max_V)/2 ;
+            m = mean(V) ;
             if(n_dim==2)
                 text(m(1),m(2), num2str(j)) ;
             else
