@@ -73,11 +73,10 @@ classdef problem_init
                     goal_size(2*j-1,i) = goal_min(j);
                     goal_size(2*j,i) = goal_max(j);
                 end
-%                 target = goal_intersection_obs(goal_size(:,i),obs_size);
-                target = random_goal(target_polytopeV,obs_size);
+                target = goal_intersection_obs(goal_size(:,i),obs_size);
+%                 target = random_goal(target_polytopeV,obs_size);
                 if isempty(target)
-%                     fprintf('initial position/goal in collision with box.. random sampling failed\n');
-                    fprintf('goal in collision with box\n');
+                    fprintf('initial position/goal in collision with box.. random sampling failed\n');
                     Realizability = false;
                     break;
                 else
@@ -154,12 +153,10 @@ classdef problem_init
                     eta0 = cbf_sub.eta;
                     fprintf('B0: %d\n',eta0(1,1));
                     if eta0(1,1) <= 0
-                        if chk_collision(prob.X0(1:prob.output_dim),box)
+%                         if chk_collision(prob.X0(1:prob.output_dim),box)
                             fprintf('start location in obstacle\n');
                             Realizability = false;
-                        else
-                            eta0(1,1) = abs(eta0(1,1)); %X0 is not in obs but in the ellipse region so replace -ve eta by positive
-                        end
+%                         end
                     end
                     if prob.number_integrators == 1
                         K = 1;
@@ -266,7 +263,7 @@ obs_chked = 1;%ensures that the current goal region has been checked upto this o
 %number
 
 while obs_num <= obs_length
-    current_goal = goal_sub_regions(:,region_no); 
+    current_goal = goal_sub_regions(:,region_no); %first column of array has the current goal to be checked
     box = obs_size(:,obs_num);
     obs_sub_region = []; %contains the sub goal regions for each obstacle
     Flag_dim = false(n,1); %check for every dimension if it lies in obstacle region
@@ -275,27 +272,21 @@ while obs_num <= obs_length
             new_region = current_goal;
             new_region(2*i) = box(2*i-1); %the box must be generated on the left (min -> dim_obs)
             obs_sub_region = [obs_sub_region new_region];
-            regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
+            regions_per_obs(obs_num) = regions_per_obs(obs_num)+1;
             Flag_dim(i) = true;
         end
         if box(2*i)>current_goal(2*i-1) && box(2*i)<current_goal(2*i) %check if ob_max lies within goal region; right region exists
             new_region = current_goal;
             new_region(2*i-1) = box(2*i); %the box must be generated on the right (dim_obs -> max)
             obs_sub_region = [obs_sub_region new_region];
-            regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
+            regions_per_obs(obs_num) = regions_per_obs(obs_num)+1;
             Flag_dim(i) = true;
         end
         
-        if Flag_dim(i) == false && (box(2*i-1)>current_goal(2*i-1) || box(2*i)<current_goal(2*i)) %check if obs_min>g_max or obs_max<g_min;
+        if Flag_dim(i) == false && (box(2*i-1)>current_goal(2*i-1) || box(2*i)<current_goal(2*i)) %check if ob_min lies with goal region;
             obs_sub_region = []; %reset because the obs region is not in obstacle
-%             if region_no ~= 1
-                regions_per_obs(obs_num+1) = 0;
-%             else
-%                 regions_per_obs(obs_num) = 1;
-%             end
+            regions_per_obs(obs_num) = 0;
             break;
-        else
-            Flag_dim(i) = true;
         end
     end
     if all(Flag_dim) %obstacle lies within goal region
@@ -305,43 +296,22 @@ while obs_num <= obs_length
         if region_no > size(goal_sub_regions,2)
             warning('Goal region in obstacle');
             target = [];
-            figure;
-            title(n);
-            hold on;
-            plot_boxes(n, [obs_size(1:2:end,:); obs_size(2:2:end,:)],'red',0.3,true) ;
-            plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
-            hold off;
-            pause;
-            close all;
             return;
-        elseif region_no >= sum(regions_per_obs(1:obs_chked+1)) % ensures that goal regions have been checked upto this number
-            obs_chked = obs_num+1;
-%             obs_chked = obs_chked+1;
+        elseif region_no > sum(regions_per_obs(:,obs_chked)) % ensures that goal regions have been checked upto this number
+            obs_chked = obs_chked+1;
         end
-%         obs_num = obs_chked+1;
-%     else
-%         obs_num = obs_num+1;
+        obs_num = obs_chked;
+    else
+        obs_num = obs_num+1;
     end
-    obs_num = obs_num+1;
-% figure;
-% title(n);
-% hold on;
-% plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
-% plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
-% hold off;
-end
-current_goal = goal_sub_regions(:,region_no);  % update again to get latest region
 figure;
-title(n);
 hold on;
-plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
-plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
+plot_boxes(n, [obs_size(1:2:end,:); obs_size(2:2:end,:)],'red',0.3,false) ;
+plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
 hold off;
-
+end
 target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
 target = target';
-pause;
-close all;
 end
 
 % function new_region = generate_region(goal,dim_obs,i,region_flag)

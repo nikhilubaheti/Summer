@@ -5,8 +5,8 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 6;
-    prob.X0 = [-9.9 9.9 -9.9]';
+    prob.tf = 20;
+%     prob.X0 = [-9.9 9.9 -9.9]';
 else
     prob = problem_init;
     prob = prob.init_prob();
@@ -16,6 +16,7 @@ obs_size = prob.obstacle_extremums();
 K_Ys = [];
 Ks =[];
 cbf_p = [];
+Realizability = false;
 if Realizability
     [K_Ys,Realizability] = prob.state_bounds();
 end
@@ -30,6 +31,7 @@ t0 = prob.t0;
 t_last = prob.t0;
 clf = CLF_CBF_QP;
 clf = clf.initialize(prob,obs_size,goal_size,K_Ys,Ks,cbf_p,Realizability);
+
 if clf.Realizability
     while (prob.goal_num-current) ~= -1 && t_last < prob.tf
         clf.goal = targets(:,current);
