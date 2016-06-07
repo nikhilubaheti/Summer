@@ -112,9 +112,9 @@ classdef CLF_CBF_QP
             [A_ineq_lyap,b_ineq_lyap] = clf.lyap_constraints(t,x,gamma);
             [A_ineq_ip,b_ineq_ip] = clf.control_ip_constraints();
             [A_ineq_bound,b_ineq_bound] = clf.state_bound_constraints(t,x);
-            [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
-            A_ineq = [A_ineq_lyap;A_ineq_ip;A_ineq_bound;A_ineq_obs];
-            b_ineq = [b_ineq_lyap;b_ineq_ip;b_ineq_bound;b_ineq_obs];
+%             [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
+            A_ineq = [A_ineq_lyap;A_ineq_ip;A_ineq_bound];...A_ineq_obs];
+            b_ineq = [b_ineq_lyap;b_ineq_ip;b_ineq_bound];...;b_ineq_obs];
             %             Normalize every inequality constraint
             norm = sqrt(sum(abs(A_ineq).^2,2));
             A_ineq = A_ineq./repmat(norm,1,clf.n+1);

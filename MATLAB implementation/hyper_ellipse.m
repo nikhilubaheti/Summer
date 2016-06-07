@@ -33,8 +33,8 @@ classdef hyper_ellipse
                 % if the power raises too high, the ellipsoid approximation is not good enough
                 % stop it to prevent infinite loop
                 fprintf('Cannot approximate this box with degree less than %d\n',max_p);
-                plot_se(box_center,dist,p); hold on;
-                plot(goal(1,:),goal(2,:),'k*');hold off;
+%                 plot_se(box_center,dist,p); hold on;
+%                 plot(goal(1,:),goal(2,:),'k*');hold off;
                 return
                 end
                 a = dist.^p;

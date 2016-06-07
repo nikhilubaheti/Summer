@@ -1,9 +1,9 @@
 classdef problem_init
     properties (Access = public)
-        output_dim_range = [2 3];
+        output_dim_range = [2 2];
         number_integrators_range = [1 4];
-        goal_range = [1 10];
-        obstacle_range = [1 4];
+        goal_range = [5 10];
+        obstacle_range = [4 4];
         t0 = 0;
         tf = 3;
         output_dim = 1;
@@ -73,8 +73,8 @@ classdef problem_init
                     goal_size(2*j-1,i) = goal_min(j);
                     goal_size(2*j,i) = goal_max(j);
                 end
-%                 target = goal_intersection_obs(goal_size(:,i),obs_size);
-                target = random_goal(target_polytopeV,obs_size);
+                target = goal_intersection_obs(goal_size(:,i),obs_size);
+%                 target = random_goal(target_polytopeV,obs_size);
                 if isempty(target)
 %                     fprintf('initial position/goal in collision with box.. random sampling failed\n');
                     fprintf('goal in collision with box\n');
@@ -249,7 +249,7 @@ function target = goal_intersection_obs(goal,obs_size)
 % '''
 % Input: 
 %   goal(2*n,1): goal region with extremum points of polytope
-%   box_size(2*n,obs_num): contains extreme values of the polytope per dimension
+%   obs_size(2*n,obs_num): contains extreme values of the polytope per dimension
 % Output:
 %   target(n,1): A point in goal region not in present in the obstacle region.
 %                     If entire goal region is in obstacle then the target is [].
@@ -258,16 +258,17 @@ target = [];
 goal_sub_regions = goal;
 n = length(goal)/2;
 obs_length = size(obs_size,2);
-regions_per_obs = [1;zeros(obs_length,1)]; %keeps track of the number of regions created per obstacle
+% regions_per_obs = [1;zeros(obs_length,1)]; %keeps track of the number of regions created per obstacle
 region_no = 1; %keeps track of the current region that is being tested. Helps to check if the region tested has been
                    %check for all obstacles
 obs_num = 1; %keeps track of current obstacle region being checked
-obs_chked = 1;%ensures that the current goal region has been checked upto this obstacle
+obs_chked = [];%ensures that the current goal region has been checked upto this obstacle
 %number
 
 while obs_num <= obs_length
     current_goal = goal_sub_regions(:,region_no); 
     box = obs_size(:,obs_num);
+    obs_chked(region_no) = obs_num; %stores the obs_num that the goal_region has been chked for
     obs_sub_region = []; %contains the sub goal regions for each obstacle
     Flag_dim = false(n,1); %check for every dimension if it lies in obstacle region
     for i = 1:n
@@ -275,21 +276,21 @@ while obs_num <= obs_length
             new_region = current_goal;
             new_region(2*i) = box(2*i-1); %the box must be generated on the left (min -> dim_obs)
             obs_sub_region = [obs_sub_region new_region];
-            regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
+%             regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
             Flag_dim(i) = true;
         end
         if box(2*i)>current_goal(2*i-1) && box(2*i)<current_goal(2*i) %check if ob_max lies within goal region; right region exists
             new_region = current_goal;
             new_region(2*i-1) = box(2*i); %the box must be generated on the right (dim_obs -> max)
             obs_sub_region = [obs_sub_region new_region];
-            regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
+%             regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
             Flag_dim(i) = true;
         end
         
         if Flag_dim(i) == false && (box(2*i-1)>current_goal(2*i-1) || box(2*i)<current_goal(2*i)) %check if obs_min>g_max or obs_max<g_min;
             obs_sub_region = []; %reset because the obs region is not in obstacle
 %             if region_no ~= 1
-                regions_per_obs(obs_num+1) = 0;
+%                 regions_per_obs(obs_num+1) = 0;
 %             else
 %                 regions_per_obs(obs_num) = 1;
 %             end
@@ -299,7 +300,8 @@ while obs_num <= obs_length
         end
     end
     if all(Flag_dim) %obstacle lies within goal region
-        goal_sub_regions = [goal_sub_regions obs_sub_region];%modify goal regions with new goal_regions
+        goal_sub_regions = [goal_sub_regions(:,1:region_no) obs_sub_region goal_sub_regions(:,region_no+1:end)];%modify goal regions with new goal_regions
+        obs_chked = [obs_chked(1:region_no); obs_num*ones(size(obs_sub_region,2),1);obs_chked(region_no+1:end)];
         region_no = region_no+1; %move to the next goal region since current region is in collision
         
         if region_no > size(goal_sub_regions,2)
@@ -314,21 +316,18 @@ while obs_num <= obs_length
             pause;
             close all;
             return;
-        elseif region_no >= sum(regions_per_obs(1:obs_chked+1)) % ensures that goal regions have been checked upto this number
-            obs_chked = obs_num+1;
-%             obs_chked = obs_chked+1;
+        else 
+            obs_num = obs_chked(region_no);
         end
-%         obs_num = obs_chked+1;
-%     else
-%         obs_num = obs_num+1;
     end
-    obs_num = obs_num+1;
-% figure;
-% title(n);
-% hold on;
-% plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
-% plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
-% hold off;
+
+figure;
+title(n);
+hold on;
+plot_boxes(n, [obs_size(1:2:end,1:obs_num); obs_size(2:2:end,1:obs_num)],'red',0.3,true) ;
+plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
+hold off;
+obs_num = obs_num+1;
 end
 current_goal = goal_sub_regions(:,region_no);  % update again to get latest region
 figure;
@@ -340,7 +339,7 @@ hold off;
 
 target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
 target = target';
-pause;
+% pause;
 close all;
 end
 

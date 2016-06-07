@@ -5,8 +5,8 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 20;
-%     prob.X0 = [-9.9 9.9 -9.9]';
+    prob.tf = 6;
+    prob.X0 = [-9.9 -9.9 -9.9]';
 else
     prob = problem_init;
     prob = prob.init_prob();

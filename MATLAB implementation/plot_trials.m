@@ -22,7 +22,7 @@ if(n_dim==2)
     plot(y(:,1), y(:,2), 'LineWidth', 5) ; hold on ;
     plot(clf.X0(1), clf.X0(2), 'k*') ;
 else
-    plot3(y(:,1), y(:,2), y(:,3), 'LineWidth', 5) ; hold on ;
+    plot3(y(:,1), y(:,2), y(:,3), 'LineWidth', 10) ; hold on ;
     plot3(clf.X0(1), clf.X0(2), clf.X0(3), 'k*') ;
     zlabel('z') ;
 end
