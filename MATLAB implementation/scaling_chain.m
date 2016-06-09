@@ -5,15 +5,16 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 10;
+    prob.tf = 60;
 %     prob.X0 = [-9.9 -9.9 -9.9]';
 else
     prob = problem_init;
     prob = prob.init_prob();
 end
+clf = CLF_CBF_QP;
 obs_size = prob.obstacle_extremums();
 s = cputime;
-[targets,goal_size,Realizability] = prob.target_points(obs_size);
+[targets,goal_size,Realizability] = prob.target_points(clf,obs_size);
 e = cputime-s;
 fprintf('Time taken to find target points');
 disp(e);
@@ -34,7 +35,6 @@ traj_u = [];
 traj_t = [];
 t0 = prob.t0;
 t_last = prob.t0;
-clf = CLF_CBF_QP;
 clf = clf.initialize(prob,obs_size,goal_size,K_Ys,Ks,ellipses,cbf_p,Realizability);
 if clf.Realizability
     while (prob.goal_num-current) ~= -1 && t_last < prob.tf
@@ -56,12 +56,13 @@ if clf.Realizability
             fprintf('Reached Goal %d\n', current);
             current = current+ 1;
         end
+        clf.t_last = t_last;
     end
     clf.X0 = prob.X0;
-    plot_trials(clf,traj_u,traj_x,targets);
+    plot_trials(clf,traj_u,traj_x,traj_t,targets);
 else
     fprintf('trail ended because implementation is not realizable\n');
-    plot_trials(clf,zeros(1,clf.n),zeros(1,clf.n),targets);
+    plot_trials(clf,zeros(1,clf.n),zeros(1,clf.n),0,targets);
 end
 save('prob.mat','prob');
 % p = profile('info');

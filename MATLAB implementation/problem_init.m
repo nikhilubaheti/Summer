@@ -54,7 +54,7 @@ classdef problem_init
             end
         end
         
-        function [targets,goal_size,Realizability] = target_points(prob,obs_size)
+        function [targets,goal_size,Realizability] = target_points(prob,clf,obs_size)
             % '''
             % Get feasible target locations and store in "targets"
             % Even if one location is not feasible the the problem in not "Realizable"
@@ -73,7 +73,7 @@ classdef problem_init
                     goal_size(2*j-1,i) = goal_min(j);
                     goal_size(2*j,i) = goal_max(j);
                 end
-                target = goal_intersection_obs(goal_size(:,i),obs_size);
+                target = goal_intersection_obs(goal_size(:,i),obs_size,clf);
 %                 target = random_goal(target_polytopeV,obs_size);
                 if isempty(target)
 %                     fprintf('initial position/goal in collision with box.. random sampling failed\n');
@@ -247,7 +247,7 @@ end
                                                                  
 end
 
-function target = goal_intersection_obs(goal,obs_size)
+function target = goal_intersection_obs(goal,obs_size,clf)
 % '''
 % Input: 
 %   goal(2*n,1): goal region with extremum points of polytope
@@ -260,7 +260,7 @@ function target = goal_intersection_obs(goal,obs_size)
 %                     but if all 4 corners are in obs then choose mean
 %                     false => target point is chosen as the mean of the goal region which is not is obs
 % '''
-choose_corner = true;
+choose_corner = clf.commands.choosing_targets_corners;
 target = [];
 goal_sub_regions = goal;
 n = length(goal)/2;
@@ -320,12 +320,14 @@ while obs_num <= obs_length
 obs_num = obs_num+1;
 end
 current_goal = goal_sub_regions(:,region_no);  % update again to get latest region
-% figure;
-% title(n);
-% hold on;
-% plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
-% plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
-% hold off;
+if clf.commands.disp_goal_free
+    figure;
+    title(n);
+    hold on;
+    plot_boxes(n, [obs_size(1:2:end,:); obs_size(2:2:end,:)],'red',0.3,true) ;
+    plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
+    hold off;
+end
 if choose_corner && region_no > 1
     goal_box = generate_box(current_goal(1:2:end),current_goal(2:2:end));
     corner_flag = false;
@@ -343,8 +345,6 @@ else
     target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
     target = target';
 end
-
-% close all;
 end
 
 function K = CBF_pole_design(eta0,A,B,p)

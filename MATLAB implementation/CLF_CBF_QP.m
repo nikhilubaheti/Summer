@@ -48,6 +48,8 @@ classdef CLF_CBF_QP
         current_goal = 0;
         u = [];
         ellipses = [];
+        commands = commands_for_test;
+        t_last = 0;
     end
     
     methods
@@ -82,15 +84,15 @@ classdef CLF_CBF_QP
             clf.U_max = prob.U_max;
             clf.Y_min = prob.Y_min;
             clf.Y_max = prob.Y_max;
-            clf.K_Ys = K_Ys;
-            clf.Ks = Ks;
+            clf.K_Ys = K_Ys*clf.commands.K_Ys_multiplier;
+            clf.Ks = Ks*clf.commands.Ks_multiplier;
             clf.cbf_p = cbf_p;
             clf.Realizability = Realizability;
             clf.Q = eye(clf.m*clf.n);
             for i = 1:clf.n
-                clf.Q(i,i) = 10;
+                clf.Q(i,i) = clf.commands.Q_multiplier;
             end
-            clf.R = 10*eye(clf.n);
+            clf.R = clf.commands.R_multiplier*eye(clf.n);
             clf.target_state = zeros(clf.m*clf.n,1);
             clf.T = min(4,25/clf.goal_num);
             clf.vel = zeros(clf.n,1);
@@ -110,13 +112,29 @@ classdef CLF_CBF_QP
             %                 - obstacles avoidance
             %             Normalize all constaints
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            gamma = 1;
-            [A_ineq_lyap,b_ineq_lyap] = clf.lyap_constraints(t,x,gamma);
-%             [A_ineq_ip,b_ineq_ip] = clf.control_ip_constraints();
-            [A_ineq_bound,b_ineq_bound] = clf.state_bound_constraints(t,x);
-            [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
-            A_ineq = [A_ineq_lyap;A_ineq_bound;A_ineq_obs];...A_ineq_ip];...A_ineq_bound];...A_ineq_obs];
-            b_ineq = [b_ineq_lyap;b_ineq_bound;b_ineq_obs];...b_ineq_ip];...b_ineq_bound];...;b_ineq_obs];
+            gamma = clf.commands.gamma_value;
+            A_ineq = [];
+            b_ineq = [];
+            if clf.commands.lyap_const_test
+                [A_ineq_lyap,b_ineq_lyap] = clf.lyap_constraints(t,x,gamma);
+                A_ineq = [A_ineq; A_ineq_lyap];
+                b_ineq = [b_ineq; b_ineq_lyap];
+            end
+            if clf.commands.ip_bound_test
+                [A_ineq_ip,b_ineq_ip] = clf.control_ip_constraints();
+                 A_ineq = [A_ineq; A_ineq_ip];
+                 b_ineq = [b_ineq; b_ineq_ip];
+            end
+            if clf.commands.state_bound_test
+                [A_ineq_bound,b_ineq_bound] = clf.state_bound_constraints(t,x);
+                A_ineq = [A_ineq; A_ineq_bound];
+                b_ineq = [b_ineq; b_ineq_bound];
+            end
+            if clf.commands.obs_bound_test
+                [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
+                A_ineq = [A_ineq; A_ineq_obs];
+                b_ineq = [b_ineq; b_ineq_obs];
+            end
             %             Normalize every inequality constraint
             norm = sqrt(sum(abs(A_ineq).^2,2));
             A_ineq = A_ineq./repmat(norm,1,clf.n+1);
@@ -126,7 +144,7 @@ classdef CLF_CBF_QP
             %           high cost to slack variable to ensure we do not collide with obstacles
             %           '''
             C_qp = eye(clf.n+1);
-            C_qp(clf.n+1,clf.n+1) = 10;
+            C_qp(clf.n+1,clf.n+1) = clf.commands.slack_cost;
             options = optimoptions('quadprog','Display','off');
             u_slack = quadprog(C_qp,zeros(clf.n+1,1),A_ineq,b_ineq,[],[],[],[],[],options);
             if length(u_slack) ~= clf.n+1
@@ -135,7 +153,9 @@ classdef CLF_CBF_QP
                 u = zeros(clf.n,1);
             else
                 u = u_slack(1:clf.n);
-                u = max(clf.U_min,min(u,clf.U_max));
+                if clf.commands.ip_hard_const
+                    u = max(clf.U_min,min(u,clf.U_max));
+                end
             end
         end
         
@@ -165,9 +185,12 @@ classdef CLF_CBF_QP
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             F = clf.A;
             G = clf.B;
-            pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T); ... let the goal be linearly changed for quicker convergence
-            xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
-%             xd = clf.target_state;
+            if clf.commands.velocity_profile_test
+                pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T); % let the goal be linearly changed for quicker convergence
+                xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
+            else
+                xd = clf.target_state;
+            end
             V = (x-xd)'*clf.P*(x-xd);
             dV_dx = 2*(x-xd)'*clf.P;
             LfV = dV_dx*F*x;
@@ -255,28 +278,22 @@ classdef CLF_CBF_QP
             %             placement
             %
             %         '''
-            %         Y_QP: Contraints on state position vector outter bounds
-            %         For minimum bounds: x >= x_min
-            %         B(x) = x-x_min
+            %         B(x) = ellipse_modelling of obs
             %         eta = [B(x);dB(x);...;d^(m-1)B(x)];
             %         For integrator chain case:
-            %           -u <= K*eta
-            %
-            %
-            %         For maximum bounds: x <= x_max
-            %         B(x) = x-x_max
-            %         eta = [B(x);dB(x);...;d^(m-1)B(x)];
-            %         For integrator chain case:
-            %           u <= -K*eta
-            %         '''
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %           Lf(^m)B + LgLf^(m-1)B*u <= -K*eta
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             b_ineq = zeros(clf.obs_num,1);
             A_ineq = zeros(clf.obs_num,clf.n+1);
             for i = 1:clf.obs_num
                 cbf_sub = clf.cbf_p(i).subs_cbf(x);
                 if cbf_sub.eta(1)<0
-                    fprintf('in collision with obstacle\n');
-                    disp(t);
+                    if chk_collision(x(1:clf.n),clf.box_size)
+                        warning('in collision with obstacle\n');
+                        disp(t);
+                    else
+                        fprintf('in collision with ellipse\n');
+                    end
                 end
                 K = clf.Ks(i,:);
                 b_ineq_cbf = K*cbf_sub.eta+cbf_sub.LfB;

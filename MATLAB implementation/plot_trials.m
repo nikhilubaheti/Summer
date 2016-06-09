@@ -1,20 +1,18 @@
-function plot_trials(clf,traj_u,traj_y,targets)
+function plot_trials(clf,traj_u,traj_y,traj_t,targets)
 if(clf.n == 2)
-    plot_trial(2,clf,traj_u,traj_y,targets) ;
+    plot_trial(2,clf,traj_u,traj_y,traj_t,targets) ;
 elseif(clf.n == 3)
-    plot_trial(3,clf,traj_u,traj_y,targets) ;
-else
-    disp(['Skipping Trial #' num2str(j) ' #states: ' num2str(td.n_states) ' #o/p: ' num2str(td.n_outputs) ' #int: ' num2str(td.n_integrators)]) ;
+    plot_trial(3,clf,traj_u,traj_y,traj_t,targets) ;
 end
 end
 
 
-function plot_trial(n_dim,clf,u,y,targets)
+function plot_trial(n_dim,clf,u,y,t,targets)
 figure ;
 title('u plotted are approximation got from x_dynam');
 for i = 1:clf.n
     subplot(clf.n,1,i);
-    plot(u(:,i)) ; grid on ; title(['u(' num2str(i) ')']);
+    plot(t(1:length(u)),u(:,i)) ; grid on ; title(['u(' num2str(i) ')']);
 end
     
     
