@@ -113,10 +113,10 @@ classdef CLF_CBF_QP
             gamma = 1;
             [A_ineq_lyap,b_ineq_lyap] = clf.lyap_constraints(t,x,gamma);
 %             [A_ineq_ip,b_ineq_ip] = clf.control_ip_constraints();
-%             [A_ineq_bound,b_ineq_bound] = clf.state_bound_constraints(t,x);
-%             [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
-            A_ineq = [A_ineq_lyap];...A_ineq_ip];...A_ineq_bound];...A_ineq_obs];
-            b_ineq = [b_ineq_lyap];...b_ineq_ip];...b_ineq_bound];...;b_ineq_obs];
+            [A_ineq_bound,b_ineq_bound] = clf.state_bound_constraints(t,x);
+            [A_ineq_obs,b_ineq_obs] = clf.obs_constraints(t,x);
+            A_ineq = [A_ineq_lyap;A_ineq_bound;A_ineq_obs];...A_ineq_ip];...A_ineq_bound];...A_ineq_obs];
+            b_ineq = [b_ineq_lyap;b_ineq_bound;b_ineq_obs];...b_ineq_ip];...b_ineq_bound];...;b_ineq_obs];
             %             Normalize every inequality constraint
             norm = sqrt(sum(abs(A_ineq).^2,2));
             A_ineq = A_ineq./repmat(norm,1,clf.n+1);
@@ -126,7 +126,7 @@ classdef CLF_CBF_QP
             %           high cost to slack variable to ensure we do not collide with obstacles
             %           '''
             C_qp = eye(clf.n+1);
-            C_qp(clf.n+1,clf.n+1) = 100;
+            C_qp(clf.n+1,clf.n+1) = 10;
             options = optimoptions('quadprog','Display','off');
             u_slack = quadprog(C_qp,zeros(clf.n+1,1),A_ineq,b_ineq,[],[],[],[],[],options);
             if length(u_slack) ~= clf.n+1
@@ -165,9 +165,9 @@ classdef CLF_CBF_QP
             %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
             F = clf.A;
             G = clf.B;
-%             pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T); ... let the goal be linearly changed for quicker convergence
-%                 xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
-            xd = clf.target_state;
+            pos_d = clf.X0(1:clf.n) + clf.vel*min(t,clf.T); ... let the goal be linearly changed for quicker convergence
+            xd = [pos_d; zeros((clf.m-1)*clf.n,1)];
+%             xd = clf.target_state;
             V = (x-xd)'*clf.P*(x-xd);
             dV_dx = 2*(x-xd)'*clf.P;
             LfV = dV_dx*F*x;

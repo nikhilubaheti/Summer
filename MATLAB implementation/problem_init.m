@@ -5,7 +5,7 @@ classdef problem_init
         goal_range = [1 10];
         obstacle_range = [1 4];
         t0 = 0;
-        tf = 3;
+        tf = 30;
         output_dim = 1;
         number_integrators = 1;
         U_min = []; 
@@ -320,12 +320,12 @@ while obs_num <= obs_length
 obs_num = obs_num+1;
 end
 current_goal = goal_sub_regions(:,region_no);  % update again to get latest region
-figure;
-title(n);
-hold on;
-plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
-plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
-hold off;
+% figure;
+% title(n);
+% hold on;
+% plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
+% plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
+% hold off;
 if choose_corner && region_no > 1
     goal_box = generate_box(current_goal(1:2:end),current_goal(2:2:end));
     corner_flag = false;

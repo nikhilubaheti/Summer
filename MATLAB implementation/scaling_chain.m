@@ -5,7 +5,7 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 30;
+    prob.tf = 10;
 %     prob.X0 = [-9.9 -9.9 -9.9]';
 else
     prob = problem_init;
@@ -20,6 +20,7 @@ disp(e);
 K_Ys = [];
 Ks =[];
 cbf_p = [];
+ellipses = [];
 % Realizability = false;
 if Realizability
     [K_Ys,Realizability] = prob.state_bounds();
@@ -43,6 +44,7 @@ if clf.Realizability
         clf.vel = (clf.goal - clf.X0(1:clf.n))./clf.T;
         options = odeset('Events',@event_func);
         [t,x_dynam] = ode15s(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+%         [t,x_dynam] = ode45(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
         clf.X0 = x_dynam(end,:)';
         dx = diff(x_dynam)./repmat(diff(t),1,clf.m*clf.n);
         u = dx(:,clf.n*(clf.m-1)+1:end);

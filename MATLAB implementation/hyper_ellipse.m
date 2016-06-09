@@ -33,16 +33,18 @@ classdef hyper_ellipse
                 % if the power raises too high, the ellipsoid approximation is not good enough
                 % stop it to prevent infinite loop
                 fprintf('Cannot approximate this box with degree less than %d\n',max_p);
-                plot_se(box_center,dist*n^(1/max_p),max_p); hold on;
-                plot_boxes(n, [box_size(1:2:end,:); box_size(2:2:end,:)],'red',0.3,true) ;
-                plot(goal(1,:),goal(2,:),'k*');hold off;
+                if n == 2
+                    plot_se(box_center,dist*n^(1/max_p),max_p); hold on;
+                    plot_boxes(n, [box_size(1:2:end,:); box_size(2:2:end,:)],'red',0.3,true) ;
+                    plot(goal(1,:),goal(2,:),'k*');hold off;
+                end
                 return;
                 end
                 a = dist.^p;
                 flag = true;
                 
                 for j = 1:goal_num
-                    exo = box_center - goal(j);
+                    exo = box_center - goal(:,j);
                     g = (exo.^p)./a;
                     g = sum(g);
                     if g <= n && obs_flag == 0
