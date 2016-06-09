@@ -9,7 +9,7 @@ classdef commands_for_test
 
         % tuning variables
         ip_hard_const = true; %limit u using min and max clamping to U_min and U_max
-        Ks_multiplier = 1;
+        Ks_multiplier = 10;
         K_Ys_multiplier = 1;
         gamma_value  = 1;
         slack_cost = 10;
@@ -19,7 +19,7 @@ classdef commands_for_test
         %display variables
         disp_t = true;
         disp_u = false;
-        disp_goal_free = false;
+        disp_goal_free = true;
         
         choosing_targets_corners = true;
     end

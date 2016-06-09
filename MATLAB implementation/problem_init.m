@@ -5,7 +5,7 @@ classdef problem_init
         goal_range = [1 10];
         obstacle_range = [1 4];
         t0 = 0;
-        tf = 30;
+        tf = 3;
         output_dim = 1;
         number_integrators = 1;
         U_min = []; 

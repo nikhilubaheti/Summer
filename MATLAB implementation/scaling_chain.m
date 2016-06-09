@@ -1,12 +1,10 @@
-% Initialize the problem and the controller
-% profile on -history
 clc;
+clear classes;
 close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 60;
-%     prob.X0 = [-9.9 -9.9 -9.9]';
+    prob.tf = 4;
 else
     prob = problem_init;
     prob = prob.init_prob();
@@ -36,6 +34,7 @@ traj_t = [];
 t0 = prob.t0;
 t_last = prob.t0;
 clf = clf.initialize(prob,obs_size,goal_size,K_Ys,Ks,ellipses,cbf_p,Realizability);
+save('prob.mat','prob');
 if clf.Realizability
     while (prob.goal_num-current) ~= -1 && t_last < prob.tf
         clf.goal = targets(:,current);
@@ -64,5 +63,3 @@ else
     fprintf('trail ended because implementation is not realizable\n');
     plot_trials(clf,zeros(1,clf.n),zeros(1,clf.n),0,targets);
 end
-save('prob.mat','prob');
-% p = profile('info');

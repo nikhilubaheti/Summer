@@ -19,7 +19,7 @@ classdef cbf_prms
             %
             fprintf('Generate expression for CBF using Syms...\n');
             statex = [sym('x%d',[n,1]);reshape(sym('d%dx%d',[m-1,n],'real')',(m-1)*n,1)];
-            func = sum(((sym('x%d',[n,1])-geom.center)./geom.axis).^geom.degree)-geom.const;
+            func = sum(((sym('x%d',[n,1])-geom.center).^geom.degree)./geom.axis)-geom.const;
             cbf = cbf_p;   % create a list for CBF
             cbf.eta = sym('eta',[m,1]);
             cbf.eta(1) = func;

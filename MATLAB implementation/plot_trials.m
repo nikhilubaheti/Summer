@@ -12,7 +12,7 @@ figure ;
 title('u plotted are approximation got from x_dynam');
 for i = 1:clf.n
     subplot(clf.n,1,i);
-    plot(t(1:length(u)),u(:,i)) ; grid on ; title(['u(' num2str(i) ')']);
+    plot(t(1:size(u,1)),u(:,i)) ; grid on ; title(['u(' num2str(i) ')']);
 end
     
     
