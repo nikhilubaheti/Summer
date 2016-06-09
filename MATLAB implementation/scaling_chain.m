@@ -5,23 +5,27 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 6;
-    prob.X0 = [-9.9 -9.9 -9.9]';
+    prob.tf = 30;
+%     prob.X0 = [-9.9 -9.9 -9.9]';
 else
     prob = problem_init;
     prob = prob.init_prob();
 end
 obs_size = prob.obstacle_extremums();
+s = cputime;
 [targets,goal_size,Realizability] = prob.target_points(obs_size);
+e = cputime-s;
+fprintf('Time taken to find target points');
+disp(e);
 K_Ys = [];
 Ks =[];
 cbf_p = [];
-Realizability = false;
+% Realizability = false;
 if Realizability
     [K_Ys,Realizability] = prob.state_bounds();
 end
 if Realizability
-    [Ks,cbf_p,Realizability] = prob.obstacle_bounds(obs_size,targets);
+    [Ks,cbf_p,Realizability,ellipses] = prob.obstacle_bounds(obs_size,targets);
 end
 current = 1;
 traj_x = [];
@@ -30,8 +34,7 @@ traj_t = [];
 t0 = prob.t0;
 t_last = prob.t0;
 clf = CLF_CBF_QP;
-clf = clf.initialize(prob,obs_size,goal_size,K_Ys,Ks,cbf_p,Realizability);
-
+clf = clf.initialize(prob,obs_size,goal_size,K_Ys,Ks,ellipses,cbf_p,Realizability);
 if clf.Realizability
     while (prob.goal_num-current) ~= -1 && t_last < prob.tf
         clf.goal = targets(:,current);
@@ -53,9 +56,10 @@ if clf.Realizability
         end
     end
     clf.X0 = prob.X0;
-    plot_trials(clf,traj_u,traj_x);
+    plot_trials(clf,traj_u,traj_x,targets);
 else
     fprintf('trail ended because implementation is not realizable\n');
+    plot_trials(clf,zeros(1,clf.n),zeros(1,clf.n),targets);
 end
 save('prob.mat','prob');
 % p = profile('info');

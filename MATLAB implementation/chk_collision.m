@@ -1,9 +1,8 @@
 function flag = chk_collision(goal,box_size)
 % '''
-% goal: goal position
-% box_size: contains extreme values of the polytope per dimension
-% check if goal location is in collision
-% Check if for all dimensions the goal region lies in any obstacle(box)
+% goal(n,1): goal position
+% box_size(2*n,box_num): contains extreme values of the polytope per dimension
+% true if goal location is in collision
 % '''
 flag = false;
 n = length(goal);

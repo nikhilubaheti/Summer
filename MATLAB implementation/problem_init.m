@@ -2,8 +2,8 @@ classdef problem_init
     properties (Access = public)
         output_dim_range = [2 2];
         number_integrators_range = [1 4];
-        goal_range = [5 10];
-        obstacle_range = [4 4];
+        goal_range = [1 10];
+        obstacle_range = [1 4];
         t0 = 0;
         tf = 3;
         output_dim = 1;
@@ -129,7 +129,7 @@ classdef problem_init
             end
         end
         
-        function [Ks,cbf_p,Realizability] = obstacle_bounds(prob,obs_size,targets)
+        function [Ks,cbf_p,Realizability,ellipses] = obstacle_bounds(prob,obs_size,targets)
             % '''
             % Construct the CBF vector for each obstacle
             % - Find the ellipse that circumscribes the bounds which is the CBF: B(x)
@@ -139,6 +139,7 @@ classdef problem_init
             % '''
             Ks = zeros(prob.obstacle_num,prob.number_integrators);
             cbf_p(prob.obstacle_num) = cbf_prms;
+            ellipses(prob.obstacle_num) = hyper_ellipse;
             A_cbf = diag(ones(prob.number_integrators-1,1),1);
             B_cbf = [zeros(prob.number_integrators-1,1);1];
             p = -1:-1:-prob.number_integrators;
@@ -148,6 +149,7 @@ classdef problem_init
                 ellipse = hyper_ellipse;
                 ellipse = ellipse.ellips_obs_constr(box,targets,prob.output_dim,0,prob.X0);
                 if ~isempty(ellipse.center)
+                    ellipses(i) = ellipse;
                     cbf = cbf_p(i).cbf_gen(prob.number_integrators,prob.output_dim,ellipse);
                     cbf_p(i) = cbf;
                     cbf_sub = cbf_p(i).subs_cbf(prob.X0);
@@ -206,7 +208,7 @@ function box = generate_box(dim_min,dim_max)
 %     dim_min(n,1): contains the minimum values of the box planes for each dimension
 %     dim_max(n,1): contains the maximum values of the box planes for each dimension
 % Output: 
-%     box(2^n,n): contains the corners of the box
+%     box(n,2^n): contains the corners of the box
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 n = length(dim_min);
 if n == 1
@@ -253,18 +255,20 @@ function target = goal_intersection_obs(goal,obs_size)
 % Output:
 %   target(n,1): A point in goal region not in present in the obstacle region.
 %                     If entire goal region is in obstacle then the target is [].
+% Tuning: 
+%     choose_corners: true => target point is chosen as a corner point if the goal region is in obs
+%                     but if all 4 corners are in obs then choose mean
+%                     false => target point is chosen as the mean of the goal region which is not is obs
 % '''
+choose_corner = true;
 target = [];
 goal_sub_regions = goal;
 n = length(goal)/2;
 obs_length = size(obs_size,2);
-% regions_per_obs = [1;zeros(obs_length,1)]; %keeps track of the number of regions created per obstacle
 region_no = 1; %keeps track of the current region that is being tested. Helps to check if the region tested has been
                    %check for all obstacles
 obs_num = 1; %keeps track of current obstacle region being checked
-obs_chked = [];%ensures that the current goal region has been checked upto this obstacle
-%number
-
+obs_chked = [];%ensures that the current goal region has been checked upto this obstacle number
 while obs_num <= obs_length
     current_goal = goal_sub_regions(:,region_no); 
     box = obs_size(:,obs_num);
@@ -276,24 +280,17 @@ while obs_num <= obs_length
             new_region = current_goal;
             new_region(2*i) = box(2*i-1); %the box must be generated on the left (min -> dim_obs)
             obs_sub_region = [obs_sub_region new_region];
-%             regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
             Flag_dim(i) = true;
         end
         if box(2*i)>current_goal(2*i-1) && box(2*i)<current_goal(2*i) %check if ob_max lies within goal region; right region exists
             new_region = current_goal;
             new_region(2*i-1) = box(2*i); %the box must be generated on the right (dim_obs -> max)
             obs_sub_region = [obs_sub_region new_region];
-%             regions_per_obs(obs_num+1) = regions_per_obs(obs_num+1)+1;
             Flag_dim(i) = true;
         end
         
         if Flag_dim(i) == false && (box(2*i-1)>current_goal(2*i-1) || box(2*i)<current_goal(2*i)) %check if obs_min>g_max or obs_max<g_min;
             obs_sub_region = []; %reset because the obs region is not in obstacle
-%             if region_no ~= 1
-%                 regions_per_obs(obs_num+1) = 0;
-%             else
-%                 regions_per_obs(obs_num) = 1;
-%             end
             break;
         else
             Flag_dim(i) = true;
@@ -320,13 +317,6 @@ while obs_num <= obs_length
             obs_num = obs_chked(region_no);
         end
     end
-
-figure;
-title(n);
-hold on;
-plot_boxes(n, [obs_size(1:2:end,1:obs_num); obs_size(2:2:end,1:obs_num)],'red',0.3,true) ;
-plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
-hold off;
 obs_num = obs_num+1;
 end
 current_goal = goal_sub_regions(:,region_no);  % update again to get latest region
@@ -336,31 +326,26 @@ hold on;
 plot_boxes(n, [obs_size(1:2:end,1:obs_num-1); obs_size(2:2:end,1:obs_num-1)],'red',0.3,true) ;
 plot_boxes(n, [current_goal(1:2:end); current_goal(2:2:end)],'green',0.3,true) ;
 hold off;
-
-target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
-target = target';
-% pause;
-close all;
+if choose_corner && region_no > 1
+    goal_box = generate_box(current_goal(1:2:end),current_goal(2:2:end));
+    corner_flag = false;
+    for i = 1:2^n
+        if ~chk_collision(goal_box(:,i),obs_size)
+            target = (goal_box(:,i)+mean(goal_box,2))'/2;
+            corner_flag = true;
+            break;
+        end
+    end
+    if ~corner_flag
+        target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
+    end
+else
+    target = (current_goal(1:2:end) + current_goal(2:2:end))/2';
+    target = target';
 end
 
-% function new_region = generate_region(goal,dim_obs,i,region_flag)
-% % Input:
-% %   goal(2*n,1): goal region with extremum points of polytope
-% %   dim_obs: contains the point that lies within the 'i' dimension of the goal region
-% %   region_flag: 0 => the box must be generated on the left (min -> dim_obs)
-% %                1 => the box must be generated on the right (dim_obs -> max)
-% % Output: 
-% %   new_region(2*n,1): a sub region of the goal whose limits vary from the extremums of the goals
-% %                     except for the ith dimension where they vary form dim_obs to extremum
-% new_region = goal;
-% if region_flag == region.left
-%     new_region(2*i) = dim_obs; %replace maximum by dim_obs (min->dim_obs)
-% elseif reion_flag == region.right
-%     new_region(2*i-1) = dim_obs; %replace minimum by dim_obs (dim_obs->max)
-% else
-% warning('region flag is not set appropriately in "generate_region" function');
-% end
-% end
+% close all;
+end
 
 function K = CBF_pole_design(eta0,A,B,p)
 % '''

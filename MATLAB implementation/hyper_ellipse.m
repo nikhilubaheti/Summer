@@ -24,7 +24,7 @@ classdef hyper_ellipse
                 p = 1.0;               ...  % the initial degree of this super ellipsoid
             end
         max_p = 2^5;              ...  % the maximal number of p's degree
-            box_center = (box_size(1:2:end)+box_size(2:2:end))./2;
+        box_center = (box_size(1:2:end)+box_size(2:2:end))./2;
         dist = box_center - box_size(1:2:end);
         flag = false;
         while flag ~= true
@@ -33,9 +33,10 @@ classdef hyper_ellipse
                 % if the power raises too high, the ellipsoid approximation is not good enough
                 % stop it to prevent infinite loop
                 fprintf('Cannot approximate this box with degree less than %d\n',max_p);
-%                 plot_se(box_center,dist,p); hold on;
-%                 plot(goal(1,:),goal(2,:),'k*');hold off;
-                return
+                plot_se(box_center,dist*n^(1/max_p),max_p); hold on;
+                plot_boxes(n, [box_size(1:2:end,:); box_size(2:2:end,:)],'red',0.3,true) ;
+                plot(goal(1,:),goal(2,:),'k*');hold off;
+                return;
                 end
                 a = dist.^p;
                 flag = true;
