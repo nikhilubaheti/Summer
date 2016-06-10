@@ -4,7 +4,7 @@ close all;
 repeat = input('Do you want to repeat problem?(y/n)','s');
 if repeat == 'y'
     load('prob.mat');
-    prob.tf = 4;
+    prob.tf = 30;
 else
     prob = problem_init;
     prob = prob.init_prob();
@@ -25,7 +25,7 @@ if Realizability
     [K_Ys,Realizability] = prob.state_bounds();
 end
 if Realizability
-    [Ks,cbf_p,Realizability,ellipses] = prob.obstacle_bounds(obs_size,targets);
+    [Ks,cbf_p,Realizability,ellipses] = prob.obstacle_bounds(clf,obs_size,targets);
 end
 current = 1;
 traj_x = [];
@@ -42,8 +42,15 @@ if clf.Realizability
         clf.target_state = [clf.goal; zeros((clf.m-1)*clf.n,1)];
         clf.vel = (clf.goal - clf.X0(1:clf.n))./clf.T;
         options = odeset('Events',@event_func);
-        [t,x_dynam] = ode15s(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
-%         [t,x_dynam] = ode45(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        if clf.commands.use_ode15s
+            [t,x_dynam] = ode15s(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        elseif clf.commands.use_ode23
+            [t,x_dynam] = ode23(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        elseif clf.commands.use_ode113
+            [t,x_dynam] = ode23(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        elseif clf.commands.use_ode113
+            [t,x_dynam] = ode45(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        end
         clf.X0 = x_dynam(end,:)';
         dx = diff(x_dynam)./repmat(diff(t),1,clf.m*clf.n);
         u = dx(:,clf.n*(clf.m-1)+1:end);
@@ -63,3 +70,4 @@ else
     fprintf('trail ended because implementation is not realizable\n');
     plot_trials(clf,zeros(1,clf.n),zeros(1,clf.n),0,targets);
 end
+save('solution.mat');
