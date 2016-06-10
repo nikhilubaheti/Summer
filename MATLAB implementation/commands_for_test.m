@@ -9,18 +9,26 @@ classdef commands_for_test
 
         % tuning variables
         ip_hard_const = true; %limit u using min and max clamping to U_min and U_max
-        Ks_multiplier = 10;
+        Ks_multiplier = 1;
         K_Ys_multiplier = 1;
         gamma_value  = 1;
         slack_cost = 10;
-        R_multiplier = 100;
+        R_multiplier = 10;
         Q_multiplier = 10;%only multiplier for position vector
+        trail_time = 25;
+        fixed_p = false;
         
         %display variables
         disp_t = true;
         disp_u = false;
-        disp_goal_free = true;
+        disp_goal_free = false;
         
         choosing_targets_corners = true;
+        
+        %ode function usage
+        use_ode15s = true;
+        use_ode23 = false;
+        use_ode113 = false;
+        use_ode45 = false;
     end
 end

@@ -6,7 +6,7 @@ classdef hyper_ellipse
         degree = 2;
     end
     methods
-        function ellipse = ellips_obs_constr(h_ellipse,box_size, goal, n, obs_flag,X0)
+        function ellipse = ellips_obs_constr(h_ellipse,clf,box_size, goal, n, obs_flag,X0)
             % '''
             % Generate an ellipsoid-shaped obstacle to approximate a box
             % box_size: a list containing the minimum and maximum of each dimension
@@ -23,6 +23,9 @@ classdef hyper_ellipse
             else
                 p = 1.0;               ...  % the initial degree of this super ellipsoid
             end
+        if clf.commands.fixed_p 
+            p = 16;
+        end
         max_p = 2^5;              ...  % the maximal number of p's degree
         box_center = (box_size(1:2:end)+box_size(2:2:end))./2;
         dist = box_center - box_size(1:2:end);

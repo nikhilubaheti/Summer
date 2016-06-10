@@ -129,7 +129,7 @@ classdef problem_init
             end
         end
         
-        function [Ks,cbf_p,Realizability,ellipses] = obstacle_bounds(prob,obs_size,targets)
+        function [Ks,cbf_p,Realizability,ellipses] = obstacle_bounds(prob,clf,obs_size,targets)
             % '''
             % Construct the CBF vector for each obstacle
             % - Find the ellipse that circumscribes the bounds which is the CBF: B(x)
@@ -147,7 +147,7 @@ classdef problem_init
             for i = 1:prob.obstacle_num
                 box = obs_size(:,i);
                 ellipse = hyper_ellipse;
-                ellipse = ellipse.ellips_obs_constr(box,targets,prob.output_dim,0,prob.X0);
+                ellipse = ellipse.ellips_obs_constr(clf,box,targets,prob.output_dim,0,prob.X0);
                 if ~isempty(ellipse.center)
                     ellipses(i) = ellipse;
                     cbf = cbf_p(i).cbf_gen(prob.number_integrators,prob.output_dim,ellipse);
@@ -303,15 +303,15 @@ while obs_num <= obs_length
         
         if region_no > size(goal_sub_regions,2)
             warning('Goal region in obstacle');
-            target = [];
-            figure;
-            title(n);
-            hold on;
-            plot_boxes(n, [obs_size(1:2:end,:); obs_size(2:2:end,:)],'red',0.3,true) ;
-            plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
-            hold off;
-            pause;
-            close all;
+%             target = [];
+%             figure;
+%             title(n);
+%             hold on;
+%             plot_boxes(n, [obs_size(1:2:end,:); obs_size(2:2:end,:)],'red',0.3,true) ;
+%             plot_boxes(n, [goal_sub_regions(1:2:end,:); goal_sub_regions(2:2:end,:)],'green',0.3,true) ;
+%             hold off;
+%             pause;
+%             close all;
             return;
         else 
             obs_num = obs_chked(region_no);
