@@ -1,0 +1,7 @@
+- u chatters
+- decreasing gamma decreases rate and thus u does not saturate
+- if u does not saturate the i/p constraints may be used but add no value
+- clf works by itself
+- using velocity helps in bound constraints because the state higher order terms do not increase to large amounts
+  and thus when they come near the boundaries they are controllable
+- increasing R may be a solution to chattering

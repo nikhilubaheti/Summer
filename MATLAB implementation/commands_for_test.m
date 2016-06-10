@@ -11,11 +11,11 @@ classdef commands_for_test
         ip_hard_const = true; %limit u using min and max clamping to U_min and U_max
         Ks_multiplier = 1;
         K_Ys_multiplier = 1;
-        gamma_value  = 1;
+        gamma_value  = 0.5;
         slack_cost = 10;
         R_multiplier = 10;
         Q_multiplier = 10;%only multiplier for position vector
-        trail_time = 25;
+        trail_time = 60;
         fixed_p = false;
         
         %display variables
@@ -30,5 +30,6 @@ classdef commands_for_test
         use_ode23 = false;
         use_ode113 = false;
         use_ode45 = false;
+        use_euler = false;
     end
 end

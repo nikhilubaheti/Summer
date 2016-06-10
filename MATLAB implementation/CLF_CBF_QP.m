@@ -94,7 +94,7 @@ classdef CLF_CBF_QP
             end
             clf.R = clf.commands.R_multiplier*eye(clf.n);
             clf.target_state = zeros(clf.m*clf.n,1);
-            clf.T = min(10,clf.commands.trail_time/clf.goal_num);
+            clf.T = min(4,clf.commands.trail_time/clf.goal_num);
             clf.vel = zeros(clf.n,1);
             clf.goal = zeros(clf.n,1);
             clf.ellipses = ellipses;

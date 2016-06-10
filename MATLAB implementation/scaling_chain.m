@@ -50,6 +50,20 @@ if clf.Realizability
             [t,x_dynam] = ode23(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
         elseif clf.commands.use_ode113
             [t,x_dynam] = ode45(@f_nonlin,[t0 prob.tf-t_last],clf.X0,options,clf);
+        elseif clf.commands.use_euler
+            dt = 0.001;
+            t = t0:dt:prob.tf-t_last;
+            t = t';
+            len = length(t);
+            x_dynam = zeros(len,clf.m*clf.n);
+            x_dynam(1,:) = clf.X0';
+            for i = 1:len-1
+                x_dynam(i+1,:) = x_dynam(i,:) + dt*f_nonlin(t(i),x_dynam(i,:)',clf)';
+                clf.Reached_Goal = chk_collision(x_dynam(i+1,1:clf.n),clf.goal_size(:,clf.current_goal));
+                if clf.Reached_Goal
+                    break;
+                end
+            end
         end
         clf.X0 = x_dynam(end,:)';
         dx = diff(x_dynam)./repmat(diff(t),1,clf.m*clf.n);
