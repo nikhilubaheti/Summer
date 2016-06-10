@@ -22,14 +22,17 @@ classdef commands_for_test
         disp_t = true;
         disp_u = false;
         disp_goal_free = false;
+        disp_ineq_matrix = true;
         
         choosing_targets_corners = true;
         
         %ode function usage
-        use_ode15s = true;
+        use_ode15s = false;
         use_ode23 = false;
         use_ode113 = false;
         use_ode45 = false;
-        use_euler = false;
+        use_euler = true;
+        
+        calc_u_func = true;
     end
 end

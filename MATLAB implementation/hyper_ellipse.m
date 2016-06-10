@@ -65,12 +65,12 @@ classdef hyper_ellipse
         
         % scale the vector a for better numerical stability
         % and store the values to geom
-        scale = min(a);
-        a = a./scale;
+%         scale = min(a);
+%         a = a./scale;
         if obs_flag == 0
-            b = n * scale;
+            b = n;% * scale;
         else
-            b = scale;
+            b = 1;%scale;
         end
         
         ellipse.center = box_center;
