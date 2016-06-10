@@ -17,9 +17,10 @@ classdef commands_for_test
         Q_multiplier = 10;%only multiplier for position vector
         trail_time = 60;
         fixed_p = false;
+        ellipse_const_mul = 1.2;
         
         %display variables
-        disp_t = true;
+        disp_t = false;
         disp_u = false;
         disp_goal_free = false;
         disp_ineq_matrix = true;

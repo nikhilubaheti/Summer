@@ -37,7 +37,7 @@ classdef hyper_ellipse
                 % stop it to prevent infinite loop
                 fprintf('Cannot approximate this box with degree less than %d\n',max_p);
                 if n == 2
-                    plot_se(box_center,dist*n^(1/max_p),max_p); hold on;
+                    plot_se(box_center,dist*(n*clf.commands.ellipse_const_mul^(1/max_p)),max_p); hold on;
                     plot_boxes(n, [box_size(1:2:end,:); box_size(2:2:end,:)],'red',0.3,true) ;
                     plot(goal(1,:),goal(2,:),'k*');hold off;
                 end
@@ -50,7 +50,7 @@ classdef hyper_ellipse
                     exo = box_center - goal(:,j);
                     g = (exo.^p)./a;
                     g = sum(g);
-                    if g <= n && obs_flag == 0
+                    if g <= n*clf.commands.ellipse_const_mul && obs_flag == 0
                         % one goal lies within the obstacle
                         flag = false;
                         break;
@@ -68,7 +68,7 @@ classdef hyper_ellipse
 %         scale = min(a);
 %         a = a./scale;
         if obs_flag == 0
-            b = n;% * scale;
+            b = n*clf.commands.ellipse_const_mul;
         else
             b = 1;%scale;
         end
